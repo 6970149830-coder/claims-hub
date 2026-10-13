@@ -1,0 +1,419 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Claims Hub</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anuphan:wght@600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: header + notice, then either the queue view (queue | portfolio) or one claim's detail view with its workflow. */
+:root{
+  --bg:#F3F2F8; --card:#FFFFFF; --soft:#ECEBF3; --ink:#1D1F2E; --muted:#5C5F74; --line:#DCDAE7;
+  --accent:#0B4BB3; --accent-ink:#FFFFFF; --accent-soft:#E2EAFA;
+  --ok:#1D7A4C; --ok-soft:#DFF2E7; --warn:#9A5800; --warn-soft:#FCEFD6; --err:#B42318; --err-soft:#FBE3E0; --hold:#6B4BB0; --hold-soft:#ECE5F8;
+  --f-head:"Anuphan","IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12131B; --card:#1B1C27; --soft:#232433; --ink:#E9E9F2; --muted:#A3A5B9; --line:#2F3142;
+  --accent:#86A8FF; --accent-ink:#0E1430; --accent-soft:#1E2A4B;
+  --ok:#55C994; --ok-soft:#15301F; --warn:#F1B652; --warn-soft:#3A2A10; --err:#FF8277; --err-soft:#3E1816; --hold:#B897F2; --hold-soft:#2A2140; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12131B; --card:#1B1C27; --soft:#232433; --ink:#E9E9F2; --muted:#A3A5B9; --line:#2F3142;
+  --accent:#86A8FF; --accent-ink:#0E1430; --accent-soft:#1E2A4B;
+  --ok:#55C994; --ok-soft:#15301F; --warn:#F1B652; --warn-soft:#3A2A10; --err:#FF8277; --err-soft:#3E1816; --hold:#B897F2; --hold-soft:#2A2140; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:1200px;margin:0 auto;padding-inline:20px;padding-block:20px 48px;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--f-head);margin:0;line-height:1.2;text-wrap:balance}
+h1{font-size:1.8rem} h2{font-size:1.2rem} h3{font-size:.95rem}
+p{margin:0}
+.muted{color:var(--muted)} .small{font-size:.82rem}
+.mono{font-family:var(--f-mono);font-size:.86em}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:var(--accent)}
+
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.brand{display:flex;gap:12px;align-items:flex-start}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--accent);margin-top:11px;flex:none}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.notice{background:var(--hold-soft);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:.88rem}
+.notice b{font-family:var(--f-head)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.layout{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:960px){.layout{grid-template-columns:minmax(0,1fr)}}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.between{justify-content:space-between}
+
+/* filters */
+.filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;background:var(--soft);border-radius:8px;padding:12px}
+.filters .wide{grid-column:span 2}
+@media (max-width:640px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.filters .wide{grid-column:span 2}}
+label{display:flex;flex-direction:column;gap:3px;font-size:.78rem;color:var(--muted);font-weight:500}
+input,select{background:var(--card);border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:.9rem;width:100%;min-width:0}
+
+.btn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 14px;cursor:pointer;font-weight:500}
+.btn:hover:not(:disabled){border-color:var(--muted)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.sm{padding:3px 10px;font-size:.8rem}
+
+/* table */
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tbody tr:hover{background:var(--soft)}
+.claimlink{white-space:nowrap;background:none;border:0;padding:0;font-family:var(--f-mono);font-size:.84rem;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;font-size:.75rem;font-weight:600;white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.c-ok{background:var(--ok-soft);color:var(--ok)} .c-warn{background:var(--warn-soft);color:var(--warn)} .c-err{background:var(--err-soft);color:var(--err)} .c-info{background:var(--accent-soft);color:var(--accent)} .c-hold{background:var(--hold-soft);color:var(--hold)} .c-mute{background:var(--soft);color:var(--muted)}
+
+/* portfolio */
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kpi{background:var(--soft);border-radius:8px;padding:10px 12px}
+.kpi b{display:block;font-family:var(--f-head);font-size:1.35rem;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi span{font-size:.75rem;color:var(--muted)}
+.bars{display:flex;flex-direction:column;gap:7px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:4px 8px;font-size:.8rem;align-items:center}
+.bar .lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.bar .track{grid-column:1 / -1;height:6px;background:var(--soft);border-radius:3px;overflow:hidden}
+.bar .fill{height:100%;border-radius:3px;background:var(--accent)}
+
+/* detail */
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fact{background:var(--soft);border-radius:8px;padding:10px 12px;min-width:0}
+.fact dt{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.fact dd{margin:2px 0 0;font-weight:500;overflow-wrap:anywhere}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:760px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.sub{border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.sub ul{margin:0;padding-left:18px}
+.items td{font-size:.84rem}
+
+.stages{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;counter-reset:st}
+@media (max-width:900px){.stages{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:520px){.stages{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stage{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:.8rem;counter-increment:st;background:var(--card)}
+.stage::before{content:counter(st);font-family:var(--f-mono);font-size:.7rem;color:var(--muted);margin-right:4px}
+.stage b{font-weight:600}
+.stage .s{display:block;font-size:.72rem;margin-top:2px;color:var(--muted)}
+.stage.current{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.stage.passed{background:var(--ok-soft);border-color:transparent}.stage.passed .s{color:var(--ok)}
+.stage.failed{background:var(--err-soft);border-color:transparent}.stage.failed .s{color:var(--err)}
+.stage.escalated{background:var(--hold-soft);border-color:transparent}.stage.escalated .s{color:var(--hold)}
+.issue{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;border-left:3px solid var(--err);background:var(--err-soft);padding:8px 12px;border-radius:0 8px 8px 0;font-size:.88rem}
+.issue.fixable{border-color:var(--warn);background:var(--warn-soft)}
+.issue.pass{border-color:var(--ok);background:var(--ok-soft)}
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:.82rem;max-height:260px;overflow:auto}
+.log li{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px}
+.log time{font-family:var(--f-mono);color:var(--muted);font-size:.78rem}
+.pager{display:flex;gap:10px;align-items:center;justify-content:flex-end;font-size:.85rem}
+footer{font-size:.8rem;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="dot" aria-hidden="true"></span>
+      <div><h1>Claims Hub</h1><p class="muted">Check every claim before it reaches the payer · ตรวจเคลมก่อนส่ง</p></div>
+    </div>
+    <button class="linkbtn" id="guideBtn" type="button">How the workflow works</button>
+  </header>
+
+  <div class="notice"><b>Practice data only.</b> Patients, hospitals, payers and payer decisions on this page are made up for learning. Nothing here is clinical or reimbursement advice.</div>
+
+  <section class="card" id="guide" hidden>
+    <div class="row between"><h2>How the workflow works</h2><button class="btn sm" id="guideClose" type="button">Close</button></div>
+    <p class="muted small">Open any claim and press <b>Start check</b>. The claim moves through seven stages in order. A stage must pass before the next one unlocks. Format problems can be fixed with one click; anything that needs a person is escalated.</p>
+    <ol class="stages" id="guideStages"></ol>
+  </section>
+
+  <!-- QUEUE VIEW -->
+  <div class="layout" id="queueView">
+    <section class="card">
+      <div class="row between"><div><h2>Claims queue</h2><p class="muted small">Click a claim number to open it.</p></div><span class="muted small" id="matchCount"></span></div>
+      <div class="filters">
+        <label class="wide">Search<input id="q" placeholder="Claim no., HN or patient name"></label>
+        <label>Payer<select id="fPayer"></select></label>
+        <label>Visit type<select id="fType"><option value="">All</option><option>OPD</option><option>IPD</option></select></label>
+        <label>Status<select id="fStatus"><option value="">All</option><option>Pending</option><option>Submitted</option><option>Escalated</option></select></label>
+        <label>Payer response<select id="fResp"><option value="">All</option><option>Approved</option><option>Partial</option><option>Rejected</option><option value="none">No response yet</option></select></label>
+        <label>Sort by<select id="fSort"><option value="date">Service date</option><option value="amount">Amount</option><option value="id">Claim no.</option></select></label>
+        <label>Order<select id="fOrder"><option value="desc">Descending</option><option value="asc">Ascending</option></select></label>
+      </div>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Claim</th><th>Hospital</th><th>Patient</th><th>Payer</th><th>Service date (as sent)</th><th class="num">Amount ฿</th><th>Status</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="pager"><button class="btn sm" id="prev" type="button">Previous</button><span id="pageInfo"></span><button class="btn sm" id="next" type="button">Next</button></div>
+    </section>
+
+    <aside class="card" aria-label="Portfolio">
+      <div><h2>Portfolio</h2><p class="muted small">Updates as you check and resubmit claims.</p></div>
+      <div class="kpis" id="kpis"></div>
+      <h3>Payer responses</h3><div class="bars" id="respBars"></div>
+      <h3>Payer mix</h3><div class="bars" id="payerBars"></div>
+      <h3>Top rejection reasons</h3><div class="bars" id="reasonBars"></div>
+    </aside>
+  </div>
+
+  <!-- DETAIL VIEW -->
+  <div id="detailView" hidden class="card"></div>
+
+  <footer>Claims Hub · practice data · every payer response is simulated.</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const baht=n=>Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+/* ---------- Reference data (examples) ---------- */
+const PAYERS={
+  'NHSO-UCS':{name:'สปสช. · บัตรทอง',preauthAbove:null,preauthProc:['81.54']},
+  'SSO-SSS':{name:'สำนักงานประกันสังคม',preauthAbove:null,preauthProc:['81.54']},
+  'CGD-CSMBS':{name:'กรมบัญชีกลาง · ข้าราชการ',preauthAbove:50000,preauthProc:[]},
+  'PVT-ALPHA':{name:'Alpha Health (สมมติ)',preauthAbove:20000,preauthProc:['47.09','81.54']},
+  'PVT-BETA':{name:'Beta Life (สมมติ)',preauthAbove:30000,preauthProc:['81.54']}
+};
+const HOSPITALS=['โรงพยาบาลตัวอย่าง A','โรงพยาบาลตัวอย่าง B','โรงพยาบาลตัวอย่าง C'];
+const ICD10={'J18.9':'ปอดอักเสบ','N40':'ต่อมลูกหมากโต','I10':'ความดันโลหิตสูง','E11.9':'เบาหวานชนิดที่ 2','K35.8':'ไส้ติ่งอักเสบเฉียบพลัน','M17.1':'ข้อเข่าเสื่อม','N39.0':'ทางเดินปัสสาวะติดเชื้อ'};
+const CODES={'662401':['Amoxicillin 500 mg',4.5],'229116':['Paracetamol 500 mg',1],'481312':['Amlodipine 5 mg',2.5],'107263':['Metformin 500 mg',1.5],'318220':['Tamsulosin 0.4 mg',6],'693117':['Ceftriaxone 1 g inj.',180],'87.44':['Chest x-ray',250],'89.03':['Doctor evaluation',150],'47.09':['Appendectomy',24000],'81.54':['Total knee replacement',85000]};
+const PROFILES=[
+  {dx:'J18.9',sym:'ไข้ ไอมีเสมหะ 3 วัน',type:'OPD',items:[['662401',21],['229116',20],['87.44',1]]},
+  {dx:'N40',sym:'ปัสสาวะลำบาก ตื่นมาปัสสาวะกลางคืน',type:'OPD',items:[['318220',30],['89.03',1]]},
+  {dx:'I10',sym:'ติดตามความดันโลหิต',type:'OPD',items:[['481312',30],['89.03',1]]},
+  {dx:'E11.9',sym:'ติดตามระดับน้ำตาล',type:'OPD',items:[['107263',60],['89.03',1]]},
+  {dx:'N39.0',sym:'ปัสสาวะแสบขัด',type:'OPD',items:[['662401',21]]},
+  {dx:'K35.8',sym:'ปวดท้องน้อยขวา ไข้',type:'IPD',items:[['47.09',1],['693117',4]]},
+  {dx:'M17.1',sym:'ปวดเข่าเรื้อรัง เดินลำบาก',type:'IPD',items:[['81.54',1],['229116',20]]}
+];
+const REASON={format:'รูปแบบข้อมูลไม่ถูกต้อง',missing:'ข้อมูลที่จำเป็นไม่ครบถ้วน',dx:'รหัสโรคไม่ถูกต้อง',drug:'รหัสยา/หัตถการไม่ถูกต้อง',elig:'ผู้ป่วยไม่มีสิทธิ ณ วันรับบริการ',dup:'เคลมซ้ำซ้อน',total:'ยอดรวมไม่ตรงกับรายการค่าใช้จ่าย',preauth:'ไม่มีการขออนุมัติล่วงหน้า'};
+const STAGES=[
+  ['normalize','Normalize','Dates พ.ศ.→ค.ศ., code format'],
+  ['eligibility','Eligibility','National ID, active coverage'],
+  ['preauth','Pre-authorization','Approval for big or listed items'],
+  ['coding','Clinical & coding','ICD-10-TM, drug codes, totals'],
+  ['duplicate','Duplicate check','Same patient, date and payer'],
+  ['payer','Payer response','Send and receive decision'],
+  ['ar','AR reconciliation','Match payment to claim']
+];
+
+/* ---------- Synthetic claims (seeded so every load is the same) ---------- */
+function rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const r=rng(2569),pick=a=>a[Math.floor(r()*a.length)],pad=n=>String(n).padStart(2,'0');
+const FN=['สมชาย','สุดา','วิชัย','มาลี','ประเสริฐ','กมลวรรณ','ธนพล','นภา','ศักดิ์ชัย','พิมพ์ชนก','อนุชา','รัชนี'],LN=['จันทร์เพ็ญ','ใจดี','ทองคำ','ศรีสุข','บุญมา','แก้วใส','สายทอง','มั่นคง'];
+function cidDigit(d){let s=0;for(let i=0;i<12;i++)s+=+d[i]*(13-i);return String((11-s%11)%10)}
+function messyDate(y,m,d){const by=y+543,yy=String(by).slice(2);return pick([`${pad(d)}/${pad(m)}/${yy}`,`${yy}-${pad(m)}-${pad(d)}`,`${yy}${pad(m)}${pad(d)}`,`${pad(d)}/${pad(m)}/${by}`])}
+const CLAIMS=[];
+for(let i=1;i<=140;i++){
+  const pf=pick(PROFILES),payer=pick(Object.keys(PAYERS)),m=8+Math.floor(r()*2),d=1+Math.floor(r()*28);
+  const iso=`2026-${pad(m)}-${pad(d)}`;
+  const f={};const draw=p=>r()<p;
+  f.format=draw(.45);f.dxfmt=draw(.15);f.missing=draw(.08);f.elig=draw(.06);f.drug=draw(.06);f.total=draw(.08);f.dup=draw(.04);
+  const items=pf.items.map(([code,qty])=>({code,qty,price:CODES[code][1]}));
+  if(f.drug){items[0]={...items[0],code:items[0].code.slice(0,-1)+'X'}}
+  const sum=items.reduce((s,x)=>s+x.qty*x.price,0);
+  const p=PAYERS[payer];const needPA=items.some(x=>p.preauthProc.includes(x.code))||(p.preauthAbove!=null&&sum>p.preauthAbove);
+  f.preauth=needPA&&draw(.5);
+  const dxRaw=f.dxfmt?(pf.dx.includes('.')?pf.dx.replace('.',''):pf.dx).toLowerCase():pf.dx;
+  const d12=String(1100000000000+Math.floor(r()*8999999999999)).slice(0,12);
+  const c={id:'CLM-'+String(i).padStart(6,'0'),hospital:pick(HOSPITALS),hn:String(400000+Math.floor(r()*99999)),
+    patient:'คุณ'+pick(FN)+' '+pick(LN),cid:f.missing?'':d12+cidDigit(d12),payer,type:pf.type,
+    serviceRaw:f.format?messyDate(2026,m,d):iso,service:iso,dxRaw,dx:pf.dx,sym:pf.sym,items,
+    declared:f.total?Math.round(sum*1.1):sum,
+    coverage:f.elig?{from:'2024-01-01',to:'2026-06-30'}:{from:'2025-01-01',to:'2027-12-31'},
+    preauthNo:needPA&&!f.preauth?'PA-'+(50000+i):'',needPA,flags:f,history:[],status:'Pending',response:null,run:null};
+  CLAIMS.push(c);
+}
+/* baseline: most claims were already sent point-to-point, without the hub */
+CLAIMS.forEach(c=>{
+  if(r()<.25)return;
+  const reasons=Object.keys(REASON).filter(k=>k==='format'?(c.flags.format||c.flags.dxfmt):k==='dx'?false:c.flags[k]);
+  c.status='Submitted';
+  if(reasons.length){c.response='Rejected';c.history.push({attempt:1,result:'Rejected',approved:0,reasons:reasons.map(k=>REASON[k]),via:'Direct (no hub)'})}
+  else{const partial=r()<.08;c.response=partial?'Partial':'Approved';const ap=partial?Math.round(c.declared*.8):c.declared;c.history.push({attempt:1,result:c.response,approved:ap,reasons:[],via:'Direct (no hub)'})}
+});
+const byId=Object.fromEntries(CLAIMS.map(c=>[c.id,c]));
+
+/* ---------- Helpers ---------- */
+function parseDate(s){
+  let m;
+  if((m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s)))return {iso:s,be:false};
+  if((m=/^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/.exec(s))){const y=m[3].length===2?2500+ +m[3]:+m[3];return {iso:`${y-543}-${m[2]}-${m[1]}`,be:true}}
+  if((m=/^(\d{2})-(\d{2})-(\d{2})$/.exec(s)))return {iso:`${2500+ +m[1]-543}-${m[2]}-${m[3]}`,be:true};
+  if((m=/^(\d{2})(\d{2})(\d{2})$/.exec(s)))return {iso:`${2500+ +m[1]-543}-${m[2]}-${m[3]}`,be:true};
+  return null;
+}
+const canonDx=s=>{const m=/^([A-Z]\d{2})\.?(\d{1,2})?$/.exec(String(s).toUpperCase());return m?(m[2]?m[1]+'.'+m[2]:m[1]):null};
+const itemSum=c=>c.items.reduce((s,x)=>s+x.qty*x.price,0);
+const nowT=()=>new Date().toTimeString().slice(0,8);
+function respChip(c){
+  if(c.status==='Escalated')return '<span class="chip c-hold">Escalated</span>';
+  if(c.status==='Pending')return '<span class="chip c-mute">Pending</span>';
+  const k={Approved:'c-ok',Partial:'c-warn',Rejected:'c-err'}[c.response]||'c-info';
+  return `<span class="chip ${k}">${esc(c.response||'Submitted')}</span>`;
+}
+
+/* ---------- Stage checks: return issues [{msg, fix?:{label, apply()}}] ---------- */
+const CHECKS={
+  normalize(c){
+    const out=[];
+    if(c.serviceRaw!==c.service){const p=parseDate(c.serviceRaw);out.push({msg:`Service date "${c.serviceRaw}" is not in ค.ศ. YYYY-MM-DD format.`,fix:p&&{label:`Convert to ${p.iso}`,apply(){c.serviceRaw=p.iso;return `Service date ${p.be?'(พ.ศ.) ':''}converted to ${p.iso}`}}})}
+    if(c.dxRaw!==c.dx){const k=canonDx(c.dxRaw);out.push({msg:`Diagnosis "${c.dxRaw}" is not in ICD-10-TM format.`,fix:k&&{label:`Change to ${k}`,apply(){c.dxRaw=k;return `Diagnosis code formatted as ${k}`}}})}
+    return out;
+  },
+  eligibility(c){
+    const out=[];
+    if(!c.cid)out.push({msg:'National ID is missing, so rights cannot be checked.',fix:{label:'Pull from registration',apply(){const d=String(c.hn).padStart(6,'0')+'110370';c.cid=d+cidDigit(d);return `National ID ${c.cid} pulled from registration (simulated)`}}});
+    else if(cidDigit(c.cid)!==c.cid[12])out.push({msg:'National ID fails the 13-digit checksum.'});
+    if(c.service>c.coverage.to||c.service<c.coverage.from)out.push({msg:`Coverage ran ${c.coverage.from} to ${c.coverage.to}, so the patient had no rights on ${c.service}. Change the scheme or bill the patient.`});
+    return out;
+  },
+  preauth(c){
+    if(c.needPA&&!c.preauthNo)return [{msg:`${PAYERS[c.payer].name} needs pre-authorization for this claim (฿${baht(itemSum(c))}).`,fix:{label:'Request pre-auth',apply(){c.preauthNo='PA-'+(70000+parseInt(c.id.slice(4)));return `Pre-auth ${c.preauthNo} approved by payer (simulated)`}}}];
+    return [];
+  },
+  coding(c){
+    const out=[];
+    if(!ICD10[c.dx])out.push({msg:`${c.dx} is not on the ICD-10-TM list.`});
+    c.items.forEach(x=>{if(!CODES[x.code])out.push({msg:`Item code ${x.code} is not a valid TMT drug or procedure code. Send to a coder.`})});
+    const s=itemSum(c);
+    if(Math.abs(s-c.declared)>.01)out.push({msg:`Claim total ฿${baht(c.declared)} does not match the items (฿${baht(s)}).`,fix:{label:'Use item total',apply(){c.declared=s;return `Claim total corrected to ฿${baht(s)}`}}});
+    return out;
+  },
+  duplicate(c){return c.flags.dup?[{msg:'Another claim with the same patient, date and payer was already sent. Check before sending again.'}]:[]},
+  payer(){return []},
+  ar(){return []}
+};
+
+/* ---------- Workflow run ---------- */
+function startRun(c){c.run={stage:0,states:STAGES.map((_,i)=>i===0?'ready':'locked'),issues:[],log:[],done:false,escalated:false};log(c,'Check started')}
+function log(c,t){c.run.log.unshift({t:nowT(),msg:t})}
+function validateStage(c){
+  const run=c.run,key=STAGES[run.stage][0];
+  if(key==='payer')return payerStep(c);
+  if(key==='ar')return arStep(c);
+  const issues=CHECKS[key](c);run.issues=issues;
+  if(!issues.length){run.states[run.stage]='passed';log(c,`${STAGES[run.stage][1]} passed`);advance(c)}
+  else{run.states[run.stage]='failed';log(c,`${STAGES[run.stage][1]}: ${issues.length} problem${issues.length>1?'s':''} found`)}
+}
+function advance(c){const run=c.run;run.issues=[];run.stage++;if(run.stage<STAGES.length)run.states[run.stage]='ready'}
+function payerStep(c){
+  const attempt=c.history.length+1;
+  const partial=c.type==='IPD'&&c.payer.startsWith('PVT');
+  const approved=partial?Math.round(c.declared*.9):c.declared;
+  c.status='Submitted';c.response=partial?'Partial':'Approved';
+  c.history.push({attempt,result:c.response,approved,reasons:partial?['จ่ายตามอัตราที่ตกลงในกรมธรรม์']:[],via:'Claims Hub'});
+  c.run.states[c.run.stage]='passed';log(c,`Sent to payer. Response: ${c.response}, ฿${baht(approved)} (simulated)`);advance(c);
+}
+function arStep(c){
+  const h=c.history[c.history.length-1],gap=c.declared-h.approved;
+  c.run.states[c.run.stage]='passed';
+  log(c,gap>0?`AR matched. ฿${baht(h.approved)} received, ฿${baht(gap)} moved to patient/write-off`:`AR matched. ฿${baht(h.approved)} received in full`);
+  c.run.done=true;c.run.stage=STAGES.length;
+}
+function escalate(c){c.run.escalated=true;c.run.states[c.run.stage]='escalated';c.status='Escalated';log(c,`Escalated at ${STAGES[c.run.stage][1]} for staff review`)}
+
+/* ---------- Queue view ---------- */
+let page=1;const PER=15;
+$('fPayer').innerHTML='<option value="">All payers</option>'+Object.entries(PAYERS).map(([k,p])=>`<option value="${k}">${esc(p.name)}</option>`).join('');
+function filtered(){
+  const q=$('q').value.trim().toLowerCase(),fp=$('fPayer').value,ft=$('fType').value,fs=$('fStatus').value,fr=$('fResp').value,so=$('fSort').value,dir=$('fOrder').value==='asc'?1:-1;
+  return CLAIMS.filter(c=>(!q||c.id.toLowerCase().includes(q)||c.hn.includes(q)||c.patient.toLowerCase().includes(q))&&(!fp||c.payer===fp)&&(!ft||c.type===ft)&&(!fs||c.status===fs)&&(!fr||(fr==='none'?!c.response:c.response===fr)))
+    .sort((a,b)=>dir*(so==='amount'?a.declared-b.declared:so==='id'?a.id.localeCompare(b.id):a.service.localeCompare(b.service)));
+}
+function renderQueue(){
+  const list=filtered(),pages=Math.max(1,Math.ceil(list.length/PER));if(page>pages)page=pages;
+  $('matchCount').textContent=`${list.length} matching claims`;
+  $('rows').innerHTML=list.slice((page-1)*PER,page*PER).map(c=>`<tr><td><button class="claimlink" data-id="${c.id}">${c.id}</button></td><td>${esc(c.hospital.replace('โรงพยาบาลตัวอย่าง ','รพ. '))}</td><td>${esc(c.patient)}</td><td>${esc(PAYERS[c.payer].name)}</td><td class="mono">${esc(c.serviceRaw)}</td><td class="num">${baht(c.declared)}</td><td>${respChip(c)}</td></tr>`).join('')||'<tr><td colspan="7" class="muted" style="text-align:center;padding:20px">No claims match these filters.</td></tr>';
+  $('pageInfo').textContent=`Page ${page} of ${pages}`;$('prev').disabled=page<=1;$('next').disabled=page>=pages;
+  renderPortfolio();
+}
+function bars(el,entries){const max=Math.max(1,...entries.map(e=>e[1]));el.innerHTML=entries.map(([l,n,col])=>`<div class="bar"><span class="lab" title="${esc(l)}">${esc(l)}</span><span class="n">${n}</span><div class="track"><div class="fill" style="width:${n/max*100}%;${col?'background:'+col:''}"></div></div></div>`).join('')}
+function renderPortfolio(){
+  const sub=CLAIMS.filter(c=>c.status==='Submitted'),amt=CLAIMS.reduce((s,c)=>s+c.declared,0),paid=CLAIMS.reduce((s,c)=>s+(c.history.length?c.history[c.history.length-1].approved:0),0);
+  const viaHub=CLAIMS.filter(c=>c.history.some(h=>h.via==='Claims Hub')).length;
+  $('kpis').innerHTML=[[CLAIMS.length,'Claims'],[sub.length,'Submitted'],['฿'+Math.round(amt).toLocaleString('en-US'),'Claimed'],['฿'+Math.round(paid).toLocaleString('en-US'),'Approved'],[CLAIMS.filter(c=>c.status==='Escalated').length,'Escalated'],[viaHub,'Resent via hub']].map(([v,l])=>`<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join('');
+  const cnt=k=>CLAIMS.filter(c=>c.response===k).length;
+  bars($('respBars'),[['Approved',cnt('Approved'),'var(--ok)'],['Partial',cnt('Partial'),'var(--warn)'],['Rejected',cnt('Rejected'),'var(--err)'],['No response yet',CLAIMS.filter(c=>!c.response).length,'var(--muted)']]);
+  bars($('payerBars'),Object.entries(PAYERS).map(([k,p])=>[p.name,CLAIMS.filter(c=>c.payer===k).length]).sort((a,b)=>b[1]-a[1]));
+  const rc={};CLAIMS.forEach(c=>{const h=c.history[c.history.length-1];if(h&&h.result==='Rejected')h.reasons.forEach(x=>rc[x]=(rc[x]||0)+1)});
+  bars($('reasonBars'),Object.entries(rc).sort((a,b)=>b[1]-a[1]).map(([l,n])=>[l,n,'var(--err)']));
+}
+
+/* ---------- Detail view ---------- */
+let current=null;
+function openClaim(id){current=byId[id];if(!current)return;$('queueView').hidden=true;$('detailView').hidden=false;renderDetail();window.scrollTo(0,0);try{history.replaceState(null,'','#'+id)}catch(e){}}
+function closeClaim(){current=null;$('detailView').hidden=true;$('queueView').hidden=false;renderQueue();try{history.replaceState(null,'','#queue')}catch(e){}}
+function renderDetail(){
+  const c=current,run=c.run;
+  const items=c.items.map(x=>`<tr><td class="mono">${esc(x.code)}</td><td>${esc(CODES[x.code]?CODES[x.code][0]:'Unknown code')}</td><td class="num">${x.qty}</td><td class="num">${baht(x.price)}</td><td class="num">${baht(x.qty*x.price)}</td></tr>`).join('');
+  const hist=c.history.length?c.history.map(h=>`<li><b>Attempt ${h.attempt}</b> · ${esc(h.via)} · ${esc(h.result)} · approved ฿${baht(h.approved)}${h.reasons.length?`<ul>${h.reasons.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</li>`).join(''):'<li class="muted">Not sent yet.</li>';
+  let wf;
+  if(!run){wf=`<p class="muted small">Run the claim through the seven checks before sending it again. Fixes and payer responses here are simulated.</p><div><button class="btn primary" id="startBtn" type="button">Start check</button></div>`}
+  else{
+    const stageList=STAGES.map((s,i)=>`<li class="stage ${run.states[i]}${i===run.stage&&!run.done&&!run.escalated?' current':''}"><b>${s[1]}</b><span class="s">${run.states[i]}</span></li>`).join('');
+    let panel='';
+    if(run.done)panel=`<div class="issue pass"><span>All seven stages passed. The claim was sent and payment is reconciled.</span></div>`;
+    else if(run.escalated)panel=`<div class="issue"><span>Escalated at <b>${STAGES[run.stage][1]}</b>. A staff member needs to resolve this before the claim can continue.</span></div>`;
+    else{
+      const st=STAGES[run.stage];
+      panel=`<div class="row between"><div><h3>Current stage: ${st[1]}</h3><p class="muted small">${st[2]}</p></div><div class="row"><button class="btn primary" id="valBtn" type="button">${st[0]==='payer'?'Send to payer':st[0]==='ar'?'Reconcile payment':'Validate stage'}</button></div></div>`+
+        run.issues.map((x,i)=>`<div class="issue ${x.fix?'fixable':''}"><span>${esc(x.msg)}</span>${x.fix?`<button class="btn sm" data-fix="${i}" type="button">${esc(x.fix.label)}</button>`:`<button class="btn sm" data-esc type="button">Escalate</button>`}</div>`).join('');
+    }
+    wf=`<ol class="stages">${stageList}</ol>${panel}
+      <div class="grid2"><div class="sub"><h3>Evidence log</h3><ul class="log">${run.log.map(l=>`<li><time>${l.t}</time><span>${esc(l.msg)}</span></li>`).join('')}</ul></div>
+      <div class="sub"><h3>Run controls</h3><p class="muted small">Reset puts the claim back to its original data and starts over.</p><div><button class="btn" id="resetBtn" type="button">Reset this check</button></div></div></div>`;
+  }
+  $('detailView').innerHTML=`
+    <div class="row between"><button class="linkbtn" id="backBtn" type="button">← Back to claims</button>${respChip(c)}</div>
+    <div><p class="mono muted">${c.id}</p><h2>${esc(c.patient)} · ${c.type}</h2><p class="muted small">${esc(c.hospital)} · HN ${esc(c.hn)}</p></div>
+    <dl class="facts" style="margin:0">
+      <div class="fact"><dt>Payer</dt><dd>${esc(PAYERS[c.payer].name)}</dd></div>
+      <div class="fact"><dt>Service date (as sent)</dt><dd class="mono">${esc(c.serviceRaw)}</dd></div>
+      <div class="fact"><dt>Diagnosis</dt><dd><span class="mono">${esc(c.dxRaw)}</span> ${esc(ICD10[c.dx]||'')}</dd></div>
+      <div class="fact"><dt>Claim amount</dt><dd>฿${baht(c.declared)}</dd></div>
+    </dl>
+    <div class="grid2">
+      <div class="sub"><h3>Clinical record</h3><p>${esc(c.sym)}</p><div class="tbl"><table class="items"><thead><tr><th>Code</th><th>Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Total</th></tr></thead><tbody>${items}</tbody></table></div></div>
+      <div class="stack" style="display:flex;flex-direction:column;gap:14px">
+        <div class="sub"><h3>Coverage</h3><p class="small">National ID <span class="mono">${esc(c.cid||'—')}</span><br>Active ${c.coverage.from} to ${c.coverage.to}</p></div>
+        <div class="sub"><h3>Pre-authorization</h3><p class="small">${c.needPA?(c.preauthNo?`Approved · <span class="mono">${esc(c.preauthNo)}</span>`:'Required, not on file'):'Not required'}</p></div>
+        <div class="sub"><h3>Submission history</h3><ul class="small">${hist}</ul></div>
+      </div>
+    </div>
+    <div class="sub" style="gap:12px"><h2>Validation workflow</h2>${wf}</div>`;
+  $('backBtn').onclick=closeClaim;
+  if($('startBtn'))$('startBtn').onclick=()=>{startRun(c);renderDetail()};
+  if($('valBtn'))$('valBtn').onclick=()=>{validateStage(c);renderDetail()};
+  if($('resetBtn'))$('resetBtn').onclick=()=>{resetClaim(c);renderDetail()};
+  $('detailView').querySelectorAll('[data-fix]').forEach(b=>b.onclick=()=>{const x=c.run.issues[+b.dataset.fix];log(c,x.fix.apply());c.run.issues.splice(+b.dataset.fix,1);if(!c.run.issues.length)c.run.states[c.run.stage]='ready';renderDetail()});
+  $('detailView').querySelectorAll('[data-esc]').forEach(b=>b.onclick=()=>{escalate(c);renderDetail()});
+}
+const ORIGINAL=Object.fromEntries(CLAIMS.map(c=>[c.id,JSON.stringify(c)]));
+function resetClaim(c){Object.assign(c,JSON.parse(ORIGINAL[c.id]))}
+
+/* ---------- Wire up ---------- */
+['q','fPayer','fType','fStatus','fResp','fSort','fOrder'].forEach(id=>$(id).addEventListener('input',()=>{page=1;renderQueue()}));
+$('prev').onclick=()=>{page--;renderQueue()};$('next').onclick=()=>{page++;renderQueue()};
+$('rows').addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(b)openClaim(b.dataset.id)});
+$('guideStages').innerHTML=STAGES.map(s=>`<li class="stage"><b>${s[1]}</b><span class="s">${s[2]}</span></li>`).join('');
+$('guideBtn').onclick=()=>{$('guide').hidden=false;$('guide').scrollIntoView({behavior:'smooth'})};
+$('guideClose').onclick=()=>{$('guide').hidden=true};
+renderQueue();
+const h=(location.hash||'').slice(1);if(byId[h])openClaim(h);
+})();
+</script>
+
+</body></html>
